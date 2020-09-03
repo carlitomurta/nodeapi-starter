@@ -3,38 +3,28 @@ import { Router } from '../common/router';
 import * as restify from 'restify';
 
 class UserRouter extends Router {
+  constructor() {
+    super();
+    this.on('beforeRender', (document) => {
+      document.password = undefined;
+    });
+  }
+
   applyRoutes(application: restify.Server) {
     // FIND ALL
     application.get('/users', (req, resp, next) => {
-      User.find().then((users) => {
-        resp.json(users);
-        return next();
-      });
+      User.find().then(this.render(resp, next));
     });
 
     // FIND BY ID
     application.get('/users/:id', (req, resp, next) => {
-      User.findById(req.params.id)
-        .then((user) => {
-          if (user) {
-            resp.json(user);
-            return next();
-          }
-          resp.send(404);
-          return next();
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      User.findById(req.params.id).then(this.render(resp, next));
     });
 
     // SAVE
     application.post('/users', (req, resp, next) => {
       let user = new User(req.body);
-      user.save().then((user) => {
-        resp.json(user);
-        return next();
-      });
+      user.save().then(this.render(resp, next));
     });
 
     // UPDATE ONE
@@ -48,22 +38,12 @@ class UserRouter extends Router {
             resp.send(404);
           }
         })
-        .then((user) => {
-          resp.json(user);
-          return next();
-        });
+        .then(this.render(resp, next));
     });
 
     // PATCH
     application.patch('/users/:id', (req, resp, next) => {
-      User.findByIdAndUpdate(req.params.id, req.body, { new: true }).then((user) => {
-        if (user) {
-          resp.json(user);
-          return next();
-        }
-        resp.send(404);
-        return next();
-      });
+      User.findByIdAndUpdate(req.params.id, req.body, { new: true }).then(this.render(resp, next));
     });
 
     // DELETE
