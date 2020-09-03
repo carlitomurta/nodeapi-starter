@@ -1,15 +1,14 @@
-import * as restify from 'restify';
+import { usersRouter } from './users/user.router';
+import { Server } from './server/server';
 
-const server = restify.createServer({
-  name: 'nodeapi-starter',
-  version: '1.0.0',
-});
-
-server.get('/hello', (req, resp, next) => {
-  resp.json({ message: 'hello' });
-  return next();
-});
-
-server.listen(3000, () => {
-  console.log('Server is running on http://localhost:3000');
-});
+const server = new Server();
+server
+  .bootstrap([usersRouter])
+  .then((server) => {
+    console.log('API is listening on:', server.application.address());
+  })
+  .catch((error) => {
+    console.error('Server failed to start');
+    console.error(error);
+    process.exit(1);
+  });
