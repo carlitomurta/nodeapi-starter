@@ -1,65 +1,67 @@
-import { User } from './users.model';
 import { Router } from '../common/router';
 import * as restify from 'restify';
+import { NotFoundError } from 'restify-errors';
+import { User } from './users.model';
 
-class UserRouter extends Router {
+class UsersRouter extends Router {
   constructor() {
     super();
     this.on('beforeRender', (document) => {
       document.password = undefined;
+      //delete document.password
     });
   }
 
   applyRoutes(application: restify.Server) {
-    // FIND ALL
     application.get('/users', (req, resp, next) => {
-      User.find().then(this.render(resp, next));
+      User.find().then(this.render(resp, next)).catch(next);
     });
 
-    // FIND BY ID
     application.get('/users/:id', (req, resp, next) => {
-      User.findById(req.params.id).then(this.render(resp, next));
+      User.findById(req.params.id).then(this.render(resp, next)).catch(next);
     });
 
-    // SAVE
     application.post('/users', (req, resp, next) => {
       let user = new User(req.body);
-      user.save().then(this.render(resp, next));
+      user.save().then(this.render(resp, next)).catch(next);
     });
 
-    // UPDATE ONE
     application.put('/users/:id', (req, resp, next) => {
-      User.updateOne({ _id: req.params.id }, req.body)
+      (<any>User)
+        .update({ _id: req.params.id }, req.body, { overwrite: true })
         .exec()
         .then((result) => {
           if (result.n) {
             return User.findById(req.params.id);
           } else {
-            resp.send(404);
+            throw new NotFoundError('Documento não encontrado');
           }
         })
-        .then(this.render(resp, next));
+        .then(this.render(resp, next))
+        .catch(next);
     });
 
-    // PATCH
     application.patch('/users/:id', (req, resp, next) => {
-      User.findByIdAndUpdate(req.params.id, req.body, { new: true }).then(this.render(resp, next));
+      const options = { new: true };
+      User.findByIdAndUpdate(req.params.id, req.body, options)
+        .then(this.render(resp, next))
+        .catch(next);
     });
 
-    // DELETE
     application.del('/users/:id', (req, resp, next) => {
-      User.deleteOne({ _id: req.params.id })
+      User.remove({ _id: req.params.id })
         .exec()
-        .then((cmd) => {
-          if (cmd.n) {
+        .then((cmdResult: any) => {
+          if (cmdResult.result.n) {
             resp.send(204);
           } else {
-            resp.send(404);
+            throw new NotFoundError('Documento não encontrado');
           }
           return next();
-        });
+        })
+        .catch(next);
     });
   }
 }
 
-export const usersRouter = new UserRouter();
+export const usersRouter = new UsersRouter();

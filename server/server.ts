@@ -1,3 +1,4 @@
+import { handleError } from './error.handler';
 import * as restify from 'restify';
 import * as mongoose from 'mongoose';
 import { enviroment } from './../common/enviroment';
@@ -7,11 +8,10 @@ import { mergePatchBodyParser } from './merge-patch.parser';
 export class Server {
   application: restify.Server;
 
-  initializeDb(): Promise<any> {
+  initializeDb(): mongoose.MongooseThenable {
     (<any>mongoose.Promise) = global.Promise;
     return mongoose.connect(enviroment.db.url, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      useMongoClient: true,
     });
   }
 
@@ -36,6 +36,8 @@ export class Server {
         this.application.listen(enviroment.server.port, () => {
           resolve(this.application);
         });
+
+        this.application.on('restifyError', handleError);
       } catch (error) {
         reject(error);
       }
